@@ -13,8 +13,43 @@
     'use strict';
 
     // Your code here...
+    const STORE_PRE = "masterGoUnitHelper";
     const mainUI = document.createElement("div");
-    let isOn = false;
+    const store = {
+        get: function (key) {
+            const value = localStorage.getItem(STORE_PRE + key);
+            if (value === null) {
+                return undefined;
+            }
+            return JSON.parse(value);
+        },
+        set: function (key, value) {
+            localStorage.setItem(STORE_PRE + key, JSON.stringify(value));
+        }
+    }
+    const statusDefines = {
+        isOn: false
+    }
+    const status = {};
+    for (let key in statusDefines) {
+        Object.defineProperty(status, key, {
+            get: function () {
+                if (this.value === undefined) {
+                    this.value = store.get(key);
+                }
+                if (this.value === undefined) {
+                    this.value = statusDefines[key];
+                }
+                return this.value;
+            },
+            set: function (value) {
+                this.value = value;
+                store.set(key, value);
+            }
+        });
+    }
+
+    // ui初始化
     (function () {
         // 初始化 mainUI
         // 靠右侧垂直居中
@@ -63,7 +98,7 @@
         inputResolutionWidth.type = "number";
         inputResolutionWidth.style.width = "100px";
         const checkSwitch = function () {
-            if (isOn) {
+            if (status.isOn) {
                 switchButton.innerText = "关";
                 mainContent.style.display = "block";
             } else {
@@ -72,7 +107,7 @@
             }
         }
         switchButton.addEventListener("click", function () {
-            isOn = !isOn;
+            status.isOn = !status.isOn;
             checkSwitch();
         });
         checkSwitch();
@@ -80,7 +115,7 @@
     })();
     const openHelper = function (element) {
         // 监听 element 内容变化
-        const observer = new MutationObserver(function (mutationsList) {
+        const observer = new MutationObserver(function () {
             console.log("element 内容变化");
         });
         observer.observe(element, {childList: true, subtree: true});
@@ -89,7 +124,7 @@
     const closeHelper = function () {
         document.body.removeChild(mainUI);
     }
-    var lastElement = undefined;
+    let lastElement = undefined;
     const findObserveInfo = function () {
         const className = "observe-info__layout";
         const observeInfo = document.getElementsByClassName(className)[0];
@@ -104,7 +139,7 @@
         }
     }
     // 监听 body 任意内容变化
-    const observer = new MutationObserver(function (mutationsList) {
+    const observer = new MutationObserver(function () {
         findObserveInfo();
     });
     observer.observe(document.body, {childList: true, subtree: true});
