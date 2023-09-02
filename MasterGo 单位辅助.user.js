@@ -23,10 +23,12 @@
             }
             return JSON.parse(value);
         },
-        set: function (key, value) {
+        set: async function (key, value) {
             localStorage.setItem(STORE_PRE + key, JSON.stringify(value));
         }
     }
+
+    const status = {};
     const dpiDefines = {
         mdpi: 160,
         hdpi: 240,
@@ -42,6 +44,7 @@
         },
         dpi: dpiDefines.xhdpi,
     }
+    const statusNames = {}
     /**
      * 状态变化监听 function(oldValue, newValue)
      */
@@ -50,9 +53,16 @@
         resolution: [],
         dpi: [],
     }
+    const invokeStatusChangeListeners = function (key, oldValue, newValue) {
+        const listeners = statusChangeListeners[key];
+        for (let i = 0; i < listeners.length; i++) {
+            listeners[i](oldValue, newValue);
+        }
+        store.set(key, newValue);
+    }
 
-    const status = {};
     for (let key in statusDefines) {
+        statusNames[key] = key;
         let tmpValue = undefined;
         Object.defineProperty(status, key, {
             get: function () {
@@ -65,20 +75,22 @@
                 return tmpValue;
             },
             set: function (value) {
+                if (typeof value !== typeof statusDefines[key]) {
+                    throw new Error("status." + key + " 类型错误");
+                }
                 if (tmpValue === value) {
                     return;
                 }
                 const oldValue = tmpValue;
                 tmpValue = value;
-                store.set(key, value);
-                const listeners = statusChangeListeners[key];
-                for (let i = 0; i < listeners.length; i++) {
-                    listeners[i](oldValue, value);
-                }
+                invokeStatusChangeListeners(key, oldValue, value);
             }
         });
     }
-
+    /**
+     * 目标元素变化监听 function(element)
+     */
+    const onTargetChangeActions = [];
     // ui初始化
     (function () {
         // 初始化 mainUI
@@ -114,111 +126,122 @@
         mainContent.style.width = "300px"
         mainContent.style.minHeight = "300px";
         mainContent.style.height = "auto";
+        mainContent.style.maxHeight = "calc(100vh - 100px)";
         mainContent.style.backgroundColor = "#333333";
         mainContent.style.borderRadius = "10px 0 0 10px";
         mainUI.appendChild(mainContent);
-        const labelLine = document.createElement("div");
-        labelLine.style.display = "block";
-        labelLine.style.borderBottom = "1px solid #FFFFFF";
-        labelLine.style.marginBottom = "5px";
-        labelLine.style.marginRight = "30px";
+        const blockMargin = "5px";
+        const newFlexLine = function (alignItems, justifyContent) {
+            const line = document.createElement("div");
+            line.style.display = "flex";
+            line.style.alignItems = undefined === alignItems ? "flex-start" : alignItems;
+            line.style.justifyContent = undefined === justifyContent ? "flex-start" : justifyContent;
+            line.style.marginBottom = blockMargin;
+            line.style.paddingTop = "2px";
+            line.style.paddingBottom = "2px";
+            return line;
+        }
+        const newLabel = function (text) {
+            const label = document.createElement("label");
+            label.innerText = text;
+            label.style.display = "inline-block";
+            label.style.color = "#FFFFFF";
+            label.style.fontSize = "14px";
+            label.style.fontWeight = "bold";
+            return label;
+        }
+        const newLabelLine = function (text) {
+            const line = document.createElement("div");
+            line.style.display = "block";
+            line.style.marginTop = blockMargin;
+            line.style.marginBottom = blockMargin;
+            line.style.borderBottom = "1px solid #FFFFFF";
+            line.style.paddingBottom = "2px";
+            line.appendChild(newLabel(text));
+            return line;
+        };
+        const newMiniButton = function (text, color) {
+            const button = document.createElement("div");
+            button.innerText = text;
+            button.style.display = "inline-block";
+            button.style.color = "#FFFFFF";
+            button.style.border = "1px solid #FFFFFF";
+            button.style.borderRadius = "5px";
+            button.style.padding = "0px 5px";
+            button.style.marginLeft = "5px";
+            button.style.cursor = "pointer";
+            button.style.userSelect = "none";
+            button.style.textAlign = "center";
+            button.style.fontSize = "12px";
+            button.style.backgroundColor = color;
+            return button;
+        };
+        const newInput = function (type, width) {
+            const input = document.createElement("input");
+            input.type = undefined === type ? "text" : type;
+            input.style.width = undefined === width ? "auto" : width;
+            input.style.border = "1px solid #FFFFFF";
+            input.style.borderRadius = "5px";
+            input.style.padding = "2px";
+            input.style.color = "#FFFFFF";
+            input.style.backgroundColor = "#333333";
+            input.style.textAlign = "center";
+            input.style.fontSize = "16px";
+            input.style.userSelect = "none";
+            input.style.outline = "none";
+            return input;
+        }
+        const newSelect = function (width) {
+            const select = document.createElement("select");
+            select.style.width = undefined === width ? "auto" : width;
+            select.style.border = "1px solid #FFFFFF";
+            select.style.borderRadius = "5px";
+            select.style.padding = "2px";
+            select.style.color = "#FFFFFF";
+            select.style.backgroundColor = "#333333";
+            select.style.textAlign = "center";
+            select.style.fontSize = "16px";
+            select.style.userSelect = "none";
+            select.style.outline = "none";
+            return select;
+        }
         // 输入设计分辨率
-        const labelResolution = document.createElement("label");
-        labelResolution.innerText = "设计分辨率";
-        labelResolution.style.display = "inline-block";
-        labelResolution.style.color = "#FFFFFF";
-        labelLine.appendChild(labelResolution);
-        const resetButton = document.createElement("div");
-        resetButton.innerText = "重置";
-        resetButton.style.display = "inline-block";
-        resetButton.style.color = "#FFFFFF";
-        resetButton.style.border = "1px solid #FFFFFF";
-        resetButton.style.borderRadius = "5px";
-        resetButton.style.padding = "0px 5px";
-        resetButton.style.marginLeft = "5px";
-        resetButton.style.cursor = "pointer";
-        resetButton.style.userSelect = "none";
-        resetButton.style.textAlign = "center";
-        resetButton.style.fontSize = "12px";
-        resetButton.style.backgroundColor = "#FF6633";
-        resetButton.style.marginBottom = "2px";
+        const labelLine = newLabelLine("设计分辨率");
+        labelLine.style.marginRight = "30px";
+        mainContent.appendChild(labelLine);
+        const resetButton = newMiniButton("重置", "#FF6633");
         labelLine.appendChild(resetButton);
         mainContent.appendChild(labelLine);
-        const lineResolution = document.createElement("div");
-        lineResolution.style.display = "flex";
-        lineResolution.style.alignItems = "center";
-        lineResolution.style.marginBottom = "10px";
+        const lineResolution = newFlexLine("center", "space-between");
         lineResolution.style.marginRight = "30px";
-        lineResolution.style.justifyContent = "space-between";
         mainContent.appendChild(lineResolution);
-        const inputResolutionWidth = document.createElement("input");
-        inputResolutionWidth.type = "number";
-        inputResolutionWidth.style.width = "100px";
-        inputResolutionWidth.style.marginRight = "5px";
-        inputResolutionWidth.style.border = "1px solid #FFFFFF";
-        inputResolutionWidth.style.borderRadius = "5px";
-        inputResolutionWidth.style.padding = "2px";
-        inputResolutionWidth.style.color = "#FFFFFF";
-        inputResolutionWidth.style.backgroundColor = "#333333";
-        inputResolutionWidth.style.textAlign = "center";
-        inputResolutionWidth.style.fontSize = "16px";
-        inputResolutionWidth.style.userSelect = "none";
-        inputResolutionWidth.style.outline = "none";
-        inputResolutionWidth.value = status.resolution.width;
+        const inputResolutionWidth = newInput("number", "100px");
         lineResolution.appendChild(inputResolutionWidth);
-        const labelResolutionX = document.createElement("label");
-        labelResolutionX.innerText = "x";
-        labelResolutionX.style.color = "#FFFFFF";
+        const labelResolutionX = newLabel("x")
         lineResolution.appendChild(labelResolutionX);
-        const inputResolutionHeight = document.createElement("input");
-        inputResolutionHeight.type = "number";
-        inputResolutionHeight.style.width = "100px";
-        inputResolutionHeight.style.marginLeft = "5px";
-        inputResolutionHeight.style.border = "1px solid #FFFFFF";
-        inputResolutionHeight.style.borderRadius = "5px";
-        inputResolutionHeight.style.padding = "2px";
-        inputResolutionHeight.style.color = "#FFFFFF";
-        inputResolutionHeight.style.backgroundColor = "#333333";
-        inputResolutionHeight.style.textAlign = "center";
-        inputResolutionHeight.style.fontSize = "16px";
-        inputResolutionHeight.style.userSelect = "none";
-        inputResolutionHeight.style.outline = "none";
-        inputResolutionHeight.value = status.resolution.height;
+        const inputResolutionHeight = newInput("number", "100px");
         lineResolution.appendChild(inputResolutionHeight);
         // 选择 dpi 值
-        const labelDpi = document.createElement("label");
-        labelDpi.innerText = "dpi";
-        labelDpi.style.display = "block";
-        labelDpi.style.color = "#FFFFFF";
-        labelDpi.style.borderBottom = "1px solid #FFFFFF";
-        labelDpi.style.marginBottom = "5px";
+        const labelDpi = newLabelLine("dpi");
         mainContent.appendChild(labelDpi);
-        const lineDpi = document.createElement("div");
-        lineDpi.style.display = "flex";
-        lineDpi.style.alignItems = "center";
-        lineDpi.style.marginBottom = "10px";
-        lineDpi.style.justifyContent = "space-between";
-        mainContent.appendChild(lineDpi);
-        const selectDpi = document.createElement("select");
-        selectDpi.style.width = "100%";
-        selectDpi.style.border = "1px solid #FFFFFF";
-        selectDpi.style.borderRadius = "5px";
-        selectDpi.style.padding = "2px";
-        selectDpi.style.color = "#FFFFFF";
-        selectDpi.style.backgroundColor = "#333333";
-        selectDpi.style.textAlign = "center";
-        selectDpi.style.fontSize = "16px";
-        selectDpi.style.userSelect = "none";
-        selectDpi.style.outline = "none";
+        const selectDpi = newSelect("100%");
+        selectDpi.style.marginBottom = blockMargin;
         for (let key in dpiDefines) {
             const option = document.createElement("option");
             option.value = dpiDefines[key];
             option.innerText = key;
             selectDpi.appendChild(option);
         }
-        selectDpi.value = status.dpi;
-        console.log(selectDpi, selectDpi.value, status.dpi);
-        lineDpi.appendChild(selectDpi);
+        mainContent.appendChild(selectDpi);
+        const resultContent = document.createElement("div");
+        resultContent.style.marginTop = blockMargin;
+        resultContent.style.marginBottom = blockMargin;
+        mainContent.appendChild(resultContent);
+        const loadResult = function (element) {
+            console.log("loadResult", element);
+            // todo
+        }
+        onTargetChangeActions.push(loadResult);
         const checkSwitch = function (isOn) {
             if (isOn) {
                 switchButton.innerText = "关";
@@ -227,18 +250,26 @@
                 switchButton.innerText = "开";
                 mainContent.style.display = "none";
             }
-        }
+        };
+        const updateResolution = function (resolution) {
+            inputResolutionWidth.value = resolution.width;
+            inputResolutionHeight.value = resolution.height;
+        };
+        const updateDpi = function (dpi) {
+            selectDpi.value = dpi;
+        };
         statusChangeListeners.isOn.push(function (oldValue, newValue) {
             checkSwitch(newValue);
         });
-        checkSwitch(status.isOn);
         statusChangeListeners.resolution.push(function (oldValue, newValue) {
-            inputResolutionWidth.value = newValue.width;
-            inputResolutionHeight.value = newValue.height;
+            updateResolution(newValue);
         });
         statusChangeListeners.dpi.push(function (oldValue, newValue) {
-            selectDpi.value = newValue;
+            updateDpi(newValue);
         });
+        checkSwitch(status.isOn);
+        updateResolution(status.resolution);
+        updateDpi(status.dpi);
         resetButton.addEventListener("click", function () {
             for (let key in statusDefines) {
                 status[key] = statusDefines[key];
@@ -248,13 +279,23 @@
             status.isOn = !status.isOn;
         });
         inputResolutionWidth.addEventListener("change", function () {
-            // todo
+            status.resolution.width = Number(inputResolutionWidth.value);
+            invokeStatusChangeListeners(statusNames.resolution, undefined, status.resolution);
+        });
+        inputResolutionHeight.addEventListener("change", function () {
+            status.resolution.height = Number(inputResolutionHeight.value);
+            invokeStatusChangeListeners(statusNames.resolution, undefined, status.resolution);
+        });
+        selectDpi.addEventListener("change", function () {
+            status.dpi = Number(selectDpi.value);
         });
     })();
     const openHelper = function (element) {
         // 监听 element 内容变化
         const observer = new MutationObserver(function () {
-            console.log("element 内容变化");
+           for (let i = 0; i < onTargetChangeActions.length; i++) {
+               onTargetChangeActions[i](element);
+           }
         });
         observer.observe(element, {childList: true, subtree: true});
         document.body.appendChild(mainUI);
