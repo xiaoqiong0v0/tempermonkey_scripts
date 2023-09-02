@@ -103,6 +103,7 @@
         mainUI.style.height = "auto";
         mainUI.style.backgroundColor = "#333333";
         mainUI.style.borderRadius = "10px 0 0 10px";
+        mainUI.style.border = "1px solid #666666";
         const switchButton = document.createElement("div");
         switchButton.style.position = "absolute";
         switchButton.style.right = "0";
@@ -121,10 +122,12 @@
         switchButton.style.color = "#FFFFFF";
         mainUI.appendChild(switchButton);
         const mainContent = document.createElement("div");
+        mainContent.style.display = "flex";
+        mainContent.style.flexDirection = "column";
         mainContent.style.padding = "10px";
         mainContent.style.color = "#FFFFFF";
-        mainContent.style.width = "300px"
         mainContent.style.minHeight = "300px";
+        mainContent.style.width = "300px"
         mainContent.style.height = "auto";
         mainContent.style.maxHeight = "calc(100vh - 100px)";
         mainContent.style.backgroundColor = "#333333";
@@ -236,16 +239,26 @@
         const resultContent = document.createElement("div");
         resultContent.style.marginTop = blockMargin;
         resultContent.style.marginBottom = blockMargin;
+        resultContent.style.overflowY = "auto";
+        resultContent.style.flex = "1";
         mainContent.appendChild(resultContent);
+        let oldHtml = undefined;
         const loadResult = function (element) {
-            console.log("loadResult", element);
-            // todo
+            if (element.innerHTML === oldHtml) {
+                return;
+            }
+            oldHtml = element.innerHTML;
+            console.log("content change");
+            resultContent.innerHTML = "";
+            // 拷贝 element
+            const copyElement = element.cloneNode(true);
+            resultContent.appendChild(copyElement);
         }
         onTargetChangeActions.push(loadResult);
         const checkSwitch = function (isOn) {
             if (isOn) {
                 switchButton.innerText = "关";
-                mainContent.style.display = "block";
+                mainContent.style.display = "flex";
             } else {
                 switchButton.innerText = "开";
                 mainContent.style.display = "none";
@@ -293,9 +306,9 @@
     const openHelper = function (element) {
         // 监听 element 内容变化
         const observer = new MutationObserver(function () {
-           for (let i = 0; i < onTargetChangeActions.length; i++) {
-               onTargetChangeActions[i](element);
-           }
+            for (let i = 0; i < onTargetChangeActions.length; i++) {
+                onTargetChangeActions[i](element);
+            }
         });
         observer.observe(element, {childList: true, subtree: true});
         document.body.appendChild(mainUI);
