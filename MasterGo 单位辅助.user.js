@@ -35,6 +35,9 @@
         xhdpi: 320,
         xxhdpi: 480,
         xxxhdpi: 640,
+        vw: -1,
+        vh: -2,
+        vwvh: -3,
     }
     const statusDefines = {
         isOn: false,
@@ -242,17 +245,46 @@
         resultContent.style.overflowY = "auto";
         resultContent.style.flex = "1";
         mainContent.appendChild(resultContent);
+        const convertLayer = function (layer) {
+            // todo
+        }
+        const convertInfos = function (infos) {
+            for (let i = 0; i < infos.children.length; i++) {
+                const info = infos.children[i];
+                if(info.firstChild === null ||info.firstChild.firstChild === null){
+                    continue;
+                }
+                const title = info.firstChild.firstChild;
+                console.log("convert", title.innerText);
+                switch (title.innerText) {
+                    case "图层":
+                        convertLayer(info);
+                        break;
+                }
+            }
+        }
+        const convertBlocks = function (element) {
+            if(element.children.length < 1){
+                return;
+            }
+            const infos = element.children[0];
+            convertInfos(infos);
+            if(element.children.length < 2){
+                return;
+            }
+            const code = element.children[1];
+        }
         let oldHtml = undefined;
         const loadResult = function (element) {
             if (element.innerHTML === oldHtml) {
                 return;
             }
             oldHtml = element.innerHTML;
-            console.log("content change");
             resultContent.innerHTML = "";
             // 拷贝 element
             const copyElement = element.cloneNode(true);
             resultContent.appendChild(copyElement);
+            convertBlocks(copyElement);
         }
         onTargetChangeActions.push(loadResult);
         const checkSwitch = function (isOn) {
