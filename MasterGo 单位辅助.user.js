@@ -245,17 +245,74 @@
         resultContent.style.overflowY = "auto";
         resultContent.style.flex = "1";
         mainContent.appendChild(resultContent);
+        const clickToCopy = function (element) {
+
+        }
+        const covertPx = function (px, isY, isPortrait) {
+            switch (status.dpi) {
+                case statusDefines.dpi.vw:
+                    return px / status.resolution.width * 100 + "vw";
+                case statusDefines.dpi.vh:
+                    return px / status.resolution.height * 100 + "vh";
+                case statusDefines.dpi.vwvh:
+                    if (isY) {
+                        return px / status.resolution.height * 100 + "vh";
+                    } else {
+                        return px / status.resolution.width * 100 + "vw";
+                    }
+                default:
+                    if (isPortrait) {
+                        const percent = px / status.resolution.height;
+                        return percent * status.dpi + "dp";
+                    } else {
+                        const percent = px / status.resolution.width;
+                        return percent * status.dpi + "dp";
+                    }
+            }
+        }
+        const convertPxElement = function (element) {
+            const blocks = element.children;
+            for (let i = 0; i < blocks.length; i++) {
+                const block = blocks[i].firstChild;
+                const label = block.children[0].innerText;
+                clickToCopy(block.children[1]);
+                const value = block.children[1].innerText;
+                switch (label) {
+                    case "X":
+                    case "W":
+                        // todo portrait
+                        const valeX = covertPx(parseFloat(value), false, false);
+                        console.log("valeX", valeX);
+                        break
+                    case "Y":
+                    case "H":
+                        // todo portrait
+                        const valeY = covertPx(parseFloat(value), true, false);
+                        console.log("valeY", valeY);
+                        break
+                }
+            }
+        }
         const convertLayer = function (layer) {
-            // todo
+            const cells = layer.children;
+            for (let i = 1; i < cells.length; i++) {
+                let values = cells[i].children;
+                let label = values[0].innerText;
+                switch (label) {
+                    case "位置":
+                    case "尺寸":
+                        convertPxElement(values[1]);
+                        break;
+                }
+            }
         }
         const convertInfos = function (infos) {
             for (let i = 0; i < infos.children.length; i++) {
                 const info = infos.children[i];
-                if(info.firstChild === null ||info.firstChild.firstChild === null){
+                if (info.firstChild === null || info.firstChild.firstChild === null) {
                     continue;
                 }
                 const title = info.firstChild.firstChild;
-                console.log("convert", title.innerText);
                 switch (title.innerText) {
                     case "图层":
                         convertLayer(info);
@@ -264,12 +321,12 @@
             }
         }
         const convertBlocks = function (element) {
-            if(element.children.length < 1){
+            if (element.children.length < 1) {
                 return;
             }
             const infos = element.children[0];
             convertInfos(infos);
-            if(element.children.length < 2){
+            if (element.children.length < 2) {
                 return;
             }
             const code = element.children[1];
