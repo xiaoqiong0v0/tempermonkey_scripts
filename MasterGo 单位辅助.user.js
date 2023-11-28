@@ -106,7 +106,7 @@
         mainUI.style.position = "fixed";
         mainUI.style.right = "0";
         mainUI.style.top = "80px";
-        mainUI.style.zIndex = "9999";
+        mainUI.style.zIndex = "9998";
         mainUI.style.width = "auto";
         mainUI.style.height = "auto";
         mainUI.style.backgroundColor = "#333333";
@@ -262,28 +262,86 @@
         resultContent.style.overflowY = "auto";
         resultContent.style.flex = "1";
         mainContent.appendChild(resultContent);
+        const setClipboard = async function (text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+        // 点击拷贝对象innerText 鼠标浮动时显示点击复制
         const clickToCopy = function (element) {
-
+            const tipPopup = document.createElement("div");
+            tipPopup.style.position = "absolute";
+            tipPopup.style.width = "auto";
+            tipPopup.style.height = "auto";
+            tipPopup.style.padding = "2px 5px";
+            tipPopup.style.backgroundColor = "#000";
+            tipPopup.style.borderRadius = "5px";
+            tipPopup.style.color = "#FFFFFF";
+            tipPopup.style.fontSize = "12px";
+            element.addEventListener("mouseover", function () {
+                tipPopup.innerText = "点击复制";
+                const rect = element.getBoundingClientRect();
+                tipPopup.style.left = rect.left - 80 + "px";
+                tipPopup.style.top = rect.top + "px";
+                tipPopup.style.zIndex = "9999";
+                document.body.appendChild(tipPopup);
+            });
+            element.addEventListener("mouseout", function () {
+                document.body.removeChild(tipPopup);
+            });
+            element.addEventListener("click", function () {
+                setClipboard(element.innerText).then(function (isSuccess) {
+                    if (isSuccess) {
+                        tipPopup.innerText = "复制成功";
+                    } else {
+                        tipPopup.innerText = "复制失败";
+                    }
+                }).catch(function (error) {
+                    tipPopup.innerText = "复制失败";
+                });
+            });
+        }
+        const toF2 = function (value) {
+            // 如果是整数，直接返回
+            if (value === parseInt(value)) {
+                return value;
+            }
+            value = value.toFixed(2);
+            // 小数点后两位是 0 返回整数
+            if (value.endsWith(".00")) {
+                return parseInt(value);
+            }
+            return value;
+        }
+        const toInt = function (value) {
+            return Math.round(value);
         }
         const covertPx = function (px, isY, isPortrait) {
+            var scaleWidth = status.targetResolution.width / status.resolution.width;
+            var scaleHeight = status.targetResolution.height / status.resolution.height;
+            px = px * scaleWidth;
+            px = px * scaleHeight;
             switch (status.dpi) {
                 case statusDefines.dpi.vw:
-                    return px / status.resolution.width * 100 + "vw";
+                    return toInt(px / status.resolution.width * 100) + "vw";
                 case statusDefines.dpi.vh:
-                    return px / status.resolution.height * 100 + "vh";
+                    return toInt(px / status.resolution.height * 100) + "vh";
                 case statusDefines.dpi.vwvh:
                     if (isY) {
-                        return px / status.resolution.height * 100 + "vh";
+                        return toInt(px / status.resolution.height * 100) + "vh";
                     } else {
-                        return px / status.resolution.width * 100 + "vw";
+                        return toInt(px / status.resolution.width * 100) + "vw";
                     }
                 default:
                     if (isPortrait) {
                         const percent = px / status.resolution.height;
-                        return percent * status.dpi + "dp";
+                        return toF2(percent * status.dpi) + "dp";
                     } else {
                         const percent = px / status.resolution.width;
-                        return percent * status.dpi + "dp";
+                        return toF2(percent * status.dpi) + "dp";
                     }
             }
         }
@@ -300,12 +358,16 @@
                         // todo portrait
                         const valeX = covertPx(parseFloat(value), false, false);
                         console.log("valeX", valeX);
+                        block.children[1].innerHTML = block.children[1].innerHTML.replace(value, valeX);
+                        clickToCopy(block.children[1]);
                         break
                     case "Y":
                     case "H":
                         // todo portrait
                         const valeY = covertPx(parseFloat(value), true, false);
                         console.log("valeY", valeY);
+                        block.children[1].innerHTML = block.children[1].innerHTML.replace(value, valeY);
+                        clickToCopy(block.children[1]);
                         break
                 }
             }
