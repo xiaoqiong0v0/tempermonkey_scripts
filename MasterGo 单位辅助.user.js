@@ -30,6 +30,8 @@
 
     const status = {};
     const dpiDefines = {
+        autoDpi: -4,
+        ldpi: 120,
         mdpi: 160,
         hdpi: 240,
         xhdpi: 320,
@@ -38,6 +40,41 @@
         vw: -1,
         vh: -2,
         vwvh: -3,
+        px: -5,
+    }
+    const screenSizeDefines = [
+        [320, 240, dpiDefines.ldpi],
+        [480, 320, dpiDefines.mdpi],
+        [800, 480, dpiDefines.hdpi],
+        [1280, 720, dpiDefines.xhdpi],
+        [1920, 1080, dpiDefines.xxhdpi],
+        [2560, 1440, dpiDefines.xxxhdpi],
+    ]
+    const getDpiByScreenSize = function (width, height) {
+        if (width < height) {
+            // 交换
+            const tmp = width;
+            // noinspection JSSuspiciousNameCombination
+            width = height;
+            height = tmp;
+        }
+        // ldpi 240x320 120dpi 0.75
+        // mdpi 320x480 160dpi 1
+        // hdpi 480x800 240dpi 1.5
+        // xhdpi 720x1280 320dpi 2
+        // xxhdpi 1080x1920 480dpi 3
+        // xxxhdpi 1440x2560 640dpi 4
+        for (let i = 0; i < screenSizeDefines.length; i++) {
+            const screenSize = screenSizeDefines[i];
+            if (!(width >= screenSize[0] && height >= screenSize[1])) {
+                if (i === 0) {
+                    return screenSize[2];
+                } else {
+                    return screenSizeDefines[i - 1][2];
+                }
+            }
+        }
+        return dpiDefines.ldpi;
     }
     const statusDefines = {
         isOn: false,
@@ -320,10 +357,25 @@
             return Math.round(value);
         }
         const covertPx = function (px, isY, isPortrait) {
-            var scaleWidth = status.targetResolution.width / status.resolution.width;
-            var scaleHeight = status.targetResolution.height / status.resolution.height;
-            px = px * scaleWidth;
-            px = px * scaleHeight;
+            let scaleW = 1;
+            let scaleH = 1;
+            if (isPortrait) {
+                if (isY) {
+                    scaleH = status.targetResolution.width / status.resolution.height;
+                    px = px * scaleH;
+                } else {
+                    scaleW = status.targetResolution.height / status.resolution.width;
+                    px = px * scaleW;
+                }
+            } else {
+                if (isY) {
+                    scaleH = status.targetResolution.height / status.resolution.height;
+                    px = px * scaleH;
+                } else {
+                    scaleW = status.targetResolution.width / status.resolution.width;
+                    px = px * scaleW;
+                }
+            }
             switch (status.dpi) {
                 case dpiDefines.vw:
                     return toInt(px / status.resolution.width * 100) + "vw";
@@ -335,6 +387,17 @@
                     } else {
                         return toInt(px / status.resolution.width * 100) + "vw";
                     }
+                case dpiDefines.autoDpi:
+                    var screenDpi = getDpiByScreenSize(status.resolution.width, status.resolution.height);
+                    if (isPortrait) {
+                        const percent = px / status.resolution.height;
+                        return toF2(percent * screenDpi) + "dp";
+                    } else {
+                        const percent = px / status.resolution.width;
+                        return toF2(percent * screenDpi) + "dp";
+                    }
+                case dpiDefines.px:
+                    return toInt(px) + "px";
                 default:
                     if (isPortrait) {
                         const percent = px / status.resolution.height;
