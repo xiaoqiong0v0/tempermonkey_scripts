@@ -45,6 +45,10 @@
             width: 1920,
             height: 1080
         },
+        targetResolution: {
+            width: 1920,
+            height: 1080
+        },
         dpi: dpiDefines.xhdpi,
     }
     const statusNames = {}
@@ -54,6 +58,7 @@
     const statusChangeListeners = {
         isOn: [],
         resolution: [],
+        targetResolution: [],
         dpi: [],
     }
     const invokeStatusChangeListeners = function (key, oldValue, newValue) {
@@ -211,15 +216,16 @@
             select.style.outline = "none";
             return select;
         }
-        // 输入设计分辨率
-        const labelLine = newLabelLine("设计分辨率");
+        const labelLine = newLabelLine("单位辅助");
         labelLine.style.marginRight = "30px";
         mainContent.appendChild(labelLine);
-        const resetButton = newMiniButton("重置", "#FF6633");
+        const resetButton = newMiniButton("重置配置", "#FF6633");
         labelLine.appendChild(resetButton);
         mainContent.appendChild(labelLine);
+        // 输入设计分辨率
+        const labelResolution = newLabelLine("设计分辨率");
+        mainContent.appendChild(labelResolution);
         const lineResolution = newFlexLine("center", "space-between");
-        lineResolution.style.marginRight = "30px";
         mainContent.appendChild(lineResolution);
         const inputResolutionWidth = newInput("number", "100px");
         lineResolution.appendChild(inputResolutionWidth);
@@ -227,6 +233,17 @@
         lineResolution.appendChild(labelResolutionX);
         const inputResolutionHeight = newInput("number", "100px");
         lineResolution.appendChild(inputResolutionHeight);
+        // 输入目标分辨率
+        const labelTargetResolution = newLabelLine("目标分辨率");
+        mainContent.appendChild(labelTargetResolution);
+        const lineTargetResolution = newFlexLine("center", "space-between");
+        mainContent.appendChild(lineTargetResolution);
+        const inputTargetResolutionWidth = newInput("number", "100px");
+        lineTargetResolution.appendChild(inputTargetResolutionWidth);
+        const labelTargetResolutionX = newLabel("x")
+        lineTargetResolution.appendChild(labelTargetResolutionX);
+        const inputTargetResolutionHeight = newInput("number", "100px");
+        lineTargetResolution.appendChild(inputTargetResolutionHeight);
         // 选择 dpi 值
         const labelDpi = newLabelLine("dpi");
         mainContent.appendChild(labelDpi);
@@ -357,6 +374,10 @@
             inputResolutionWidth.value = resolution.width;
             inputResolutionHeight.value = resolution.height;
         };
+        const updateTargetResolution = function (resolution) {
+            inputTargetResolutionWidth.value = resolution.width;
+            inputTargetResolutionHeight.value = resolution.height;
+        };
         const updateDpi = function (dpi) {
             selectDpi.value = dpi;
         };
@@ -366,11 +387,15 @@
         statusChangeListeners.resolution.push(function (oldValue, newValue) {
             updateResolution(newValue);
         });
+        statusChangeListeners.targetResolution.push(function (oldValue, newValue) {
+            updateTargetResolution(newValue);
+        });
         statusChangeListeners.dpi.push(function (oldValue, newValue) {
             updateDpi(newValue);
         });
         checkSwitch(status.isOn);
         updateResolution(status.resolution);
+        updateTargetResolution(status.targetResolution);
         updateDpi(status.dpi);
         resetButton.addEventListener("click", function () {
             for (let key in statusDefines) {
@@ -387,6 +412,14 @@
         inputResolutionHeight.addEventListener("change", function () {
             status.resolution.height = Number(inputResolutionHeight.value);
             invokeStatusChangeListeners(statusNames.resolution, undefined, status.resolution);
+        });
+        inputTargetResolutionWidth.addEventListener("change", function () {
+            status.targetResolution.width = Number(inputTargetResolutionWidth.value);
+            invokeStatusChangeListeners(statusNames.targetResolution, undefined, status.targetResolution);
+        });
+        inputTargetResolutionHeight.addEventListener("change", function () {
+            status.targetResolution.height = Number(inputTargetResolutionHeight.value);
+            invokeStatusChangeListeners(statusNames.targetResolution, undefined, status.targetResolution);
         });
         selectDpi.addEventListener("change", function () {
             status.dpi = Number(selectDpi.value);
