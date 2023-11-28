@@ -325,11 +325,11 @@
             px = px * scaleWidth;
             px = px * scaleHeight;
             switch (status.dpi) {
-                case statusDefines.dpi.vw:
+                case dpiDefines.vw:
                     return toInt(px / status.resolution.width * 100) + "vw";
-                case statusDefines.dpi.vh:
+                case dpiDefines.vh:
                     return toInt(px / status.resolution.height * 100) + "vh";
-                case statusDefines.dpi.vwvh:
+                case dpiDefines.vwvh:
                     if (isY) {
                         return toInt(px / status.resolution.height * 100) + "vh";
                     } else {
@@ -411,6 +411,7 @@
             const code = element.children[1];
         }
         let oldHtml = undefined;
+        let oldElement = undefined;
         const loadResult = function (element) {
             if (element.innerHTML === oldHtml) {
                 return;
@@ -419,6 +420,16 @@
             resultContent.innerHTML = "";
             // 拷贝 element
             const copyElement = element.cloneNode(true);
+            oldElement = element.cloneNode(true);
+            resultContent.appendChild(copyElement);
+            convertBlocks(copyElement);
+        }
+        const refreshBlock = function () {
+            if (oldElement === undefined) {
+                return;
+            }
+            resultContent.innerHTML = "";
+            var copyElement = oldElement.cloneNode(true);
             resultContent.appendChild(copyElement);
             convertBlocks(copyElement);
         }
@@ -448,12 +459,15 @@
         });
         statusChangeListeners.resolution.push(function (oldValue, newValue) {
             updateResolution(newValue);
+            refreshBlock();
         });
         statusChangeListeners.targetResolution.push(function (oldValue, newValue) {
             updateTargetResolution(newValue);
+            refreshBlock();
         });
         statusChangeListeners.dpi.push(function (oldValue, newValue) {
             updateDpi(newValue);
+            refreshBlock();
         });
         checkSwitch(status.isOn);
         updateResolution(status.resolution);
