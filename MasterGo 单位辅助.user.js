@@ -43,15 +43,21 @@
         px: -5,
     }
     const screenSizeDefines = [
-        [320, 240, dpiDefines.ldpi],
-        [480, 320, dpiDefines.mdpi],
-        [800, 480, dpiDefines.hdpi],
-        [1280, 720, dpiDefines.xhdpi],
-        [1920, 1080, dpiDefines.xxhdpi],
-        [2560, 1440, dpiDefines.xxxhdpi],
+        [240, 320, dpiDefines.ldpi],
+        [320, 480, dpiDefines.mdpi],
+        [480, 800, dpiDefines.hdpi],
+        [720, 1280, dpiDefines.xhdpi],
+        [1080, 1920, dpiDefines.xxhdpi],
+        [1440, 2560, dpiDefines.xxxhdpi],
     ]
+    /**
+     * 根据屏幕尺寸获取 dpi 宽高会根据大小进行交换 宽为小边 高为大边
+     * @param width 宽度
+     * @param height 高度
+     * @returns {{width: number, height: number}|*} width 对应安卓宽度，height 对应安卓高度
+     */
     const getDpiByScreenSize = function (width, height) {
-        if (width < height) {
+        if (width > height) {
             // 交换
             const tmp = width;
             // noinspection JSSuspiciousNameCombination
@@ -64,17 +70,22 @@
         // xhdpi 720x1280 320dpi 2
         // xxhdpi 1080x1920 480dpi 3
         // xxxhdpi 1440x2560 640dpi 4
+        let dpi = dpiDefines.ldpi;
         for (let i = 0; i < screenSizeDefines.length; i++) {
             const screenSize = screenSizeDefines[i];
             if (!(width >= screenSize[0] && height >= screenSize[1])) {
                 if (i === 0) {
-                    return screenSize[2];
+                    dpi = screenSize[2];
                 } else {
-                    return screenSizeDefines[i - 1][2];
+                    dpi = screenSizeDefines[i - 1][2];
                 }
+                break;
             }
         }
-        return dpiDefines.ldpi;
+        return {
+            width: dpi,
+            height: dpi * (height / width)
+        };
     }
     const statusDefines = {
         isOn: false,
@@ -388,23 +399,49 @@
                         return toInt(px / status.resolution.width * 100) + "vw";
                     }
                 case dpiDefines.autoDpi:
-                    var screenDpi = getDpiByScreenSize(status.resolution.width, status.resolution.height);
+                    const screenDpi = getDpiByScreenSize(status.resolution.width, status.resolution.height);
                     if (isPortrait) {
-                        const percent = px / status.resolution.height;
-                        return toF2(percent * screenDpi) + "dp";
+                        // 竖屏
+                        if (isY) {
+                            const percent = px / status.resolution.height;
+                            return toF2(percent * screenDpi.width) + "dp";
+                        } else {
+                            const percent = px / status.resolution.width;
+                            return toF2(percent * screenDpi.height) + "dp";
+                        }
                     } else {
-                        const percent = px / status.resolution.width;
-                        return toF2(percent * screenDpi) + "dp";
+                        // 横屏
+                        if (isY) {
+                            const percent = px / status.resolution.width
+                            return toF2(percent * screenDpi.height) + "dp";
+                        } else {
+                            const percent = px / status.resolution.height;
+                            return toF2(percent * screenDpi.width) + "dp";
+                        }
                     }
                 case dpiDefines.px:
                     return toInt(px) + "px";
                 default:
+                    const width = status.dpi;
+                    const height = width * (status.resolution.height / status.resolution.width);
                     if (isPortrait) {
-                        const percent = px / status.resolution.height;
-                        return toF2(percent * status.dpi) + "dp";
+                        // 竖屏
+                        if (isY) {
+                            const percent = px / status.resolution.height;
+                            return toF2(percent * width) + "dp";
+                        } else {
+                            const percent = px / status.resolution.width;
+                            return toF2(percent * height) + "dp";
+                        }
                     } else {
-                        const percent = px / status.resolution.width;
-                        return toF2(percent * status.dpi) + "dp";
+                        // 横屏
+                        if (isY) {
+                            const percent = px / status.resolution.width;
+                            return toF2(percent * height) + "dp";
+                        } else {
+                            const percent = px / status.resolution.height;
+                            return toF2(percent * width) + "dp";
+                        }
                     }
             }
         }
